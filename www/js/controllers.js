@@ -1,7 +1,9 @@
 angular.module('wj.controllers', [])
 
 .controller('JobsCtrl', function($rootScope, $scope, Jobs) {
-  $scope.jobs = [];
+  Jobs.all().then(function(jobs) {
+    $rootScope.jobs = jobs;    
+  });
 })
 
 .controller('JobDetailCtrl', function($scope, $stateParams, Jobs) {

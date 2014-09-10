@@ -39,7 +39,7 @@ angular.module('wj.services', [])
     
       angular.forEach(jobs, function(job) {
         if (job.id == jobId) {
-          deferred.resolve(jobs[jobId]);
+          deferred.resolve(job);
         }
       });
     
