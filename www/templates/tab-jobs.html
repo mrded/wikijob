@@ -1,0 +1,12 @@
+<ion-view title="Jobs">
+
+  <ion-content class="has-header">
+    <ion-list>
+      <ion-item ng-repeat="job in jobs" type="item-text-wrap" href="#/tab/job/{{job.id}}">
+        <h2>{{job.title}}</h2>
+        <p>{{job.description}}</p>
+      </ion-item>
+    </ion-list>
+  </ion-content>
+  
+</ion-view>
