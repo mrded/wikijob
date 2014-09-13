@@ -22,6 +22,10 @@
                         {
                             "xml": "<feature name=\"Keyboard\"><param name=\"ios-package\" onload=\"true\" value=\"IonicKeyboard\" /></feature>",
                             "count": 1
+                        },
+                        {
+                            "xml": "<feature name=\"Console\"><param name=\"ios-package\" value=\"CDVLogger\" /></feature>",
+                            "count": 1
                         }
                     ],
                     "/widget": []
@@ -31,6 +35,9 @@
     },
     "installed_plugins": {
         "com.ionic.keyboard": {
+            "PACKAGE_NAME": "com.demenchuk.wikijob"
+        },
+        "org.apache.cordova.console": {
             "PACKAGE_NAME": "com.demenchuk.wikijob"
         }
     },
