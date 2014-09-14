@@ -11,7 +11,7 @@ The mobile app for WikiJob website
 ## Install
 
 ```bash
-$ npm install -g cordova ionic cordova-gen-icon
+$ npm install -g cordova ionic cordova-gen-icon ios-deploy
 $ brew install imagemagick 
 ```
 
