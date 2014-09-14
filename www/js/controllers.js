@@ -1,16 +1,15 @@
 angular.module('wj.controllers', [])
 
-.controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, Jobs) {
+.controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, Jobs, DatabaseService) {
+  console.log('DatabaseService', DatabaseService);
+  
+  DatabaseService.then(function(db) {
+    alert('works!');
+  });
+  
   $scope.reload = function() {
-    $ionicLoading.show({template: 'Download jobs'});
-    
-    Jobs.reload().then(function() {
-      $ionicLoading.show({template: 'Load jobs'});
-      
-      Jobs.all().then(function(jobs) {
-        $rootScope.jobs = jobs;
-        $ionicLoading.hide();
-      });
+    DatabaseService.then(function(db) {
+      alert("Doesn't work :(");
     });
   };
   

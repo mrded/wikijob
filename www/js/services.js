@@ -8,7 +8,7 @@ angular.module('wj.services', [])
       DatabaseService.then(function(db) {
         console.log('** Database is ready **');
         
-        $http.get('https://www.wikijob.co.uk/api/jobs').success(function(jobs) {
+        $http.get('/jobs.json').success(function(jobs) {
           console.log('** Downloaded ' + jobs.length + ' jobs **');
             
           db.bulkDocs(jobs, function(err, response) {
@@ -58,13 +58,13 @@ angular.module('wj.services', [])
 .factory('DatabaseService', function($q) {
   var ready = $q.defer();
 
-  document.addEventListener("deviceready", function() {
+  // document.addEventListener("deviceready", function() {
     console.log('** Device is ready **');
     
     PouchDB.destroy('storage', function(err, info) {
       ready.resolve(new PouchDB('storage'));
     });
-  }, false);
+  // }, false);
 
   return ready.promise;
 });
