@@ -5,7 +5,7 @@
 // the 2nd parameter is an array of 'requires'
 // 'starter.services' is found in services.js
 // 'starter.controllers' is found in controllers.js
-angular.module('wj', ['ionic', 'wj.controllers', 'wj.services'])
+angular.module('wj', ['ionic', 'wj.controllers', 'wj.services', 'pouchdb'])
 
 .run(function($ionicPlatform, $ionicLoading, $http) {
   $ionicPlatform.ready(function() {
@@ -69,4 +69,3 @@ angular.module('wj', ['ionic', 'wj.controllers', 'wj.services'])
   $urlRouterProvider.otherwise('/tab/jobs');
 
 });
-
