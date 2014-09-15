@@ -2,7 +2,9 @@
   "name": "wikijob",
   "private": "true",
   "devDependencies": {
-    "ionic": "driftyco/ionic-bower#1.0.0-beta.12",
-    "pouchdb": "~3.0.5"
+    "ionic": "driftyco/ionic-bower#1.0.0-beta.12"
+  },
+  "dependencies": {
+    "angular-pouchdb": "~0.1.5"
   }
 }

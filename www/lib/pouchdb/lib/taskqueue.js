@@ -12,10 +12,6 @@ TaskQueue.prototype.execute = function () {
   var d, func;
   if (this.failed) {
     while ((d = this.queue.shift())) {
-      if (typeof d === 'function') {
-        d(this.failed);
-        continue;
-      }
       func = d.parameters[d.parameters.length - 1];
       if (typeof func === 'function') {
         func(this.failed);
@@ -25,7 +21,6 @@ TaskQueue.prototype.execute = function () {
     }
   } else if (this.isReady) {
     while ((d = this.queue.shift())) {
-
       if (typeof d === 'function') {
         d();
       } else {
@@ -54,9 +49,6 @@ TaskQueue.prototype.ready = function (db) {
 TaskQueue.prototype.addTask = function (name, parameters) {
   if (typeof name === 'function') {
     this.queue.push(name);
-    if (this.failed) {
-      this.execute();
-    }
   } else {
     var task = { name: name, parameters: parameters };
     this.queue.push(task);

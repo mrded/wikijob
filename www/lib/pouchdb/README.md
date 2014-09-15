@@ -27,8 +27,10 @@ db.put({
  age: 66
 });
 
-db.changes().on('change', function() {
-  console.log('Ch-Ch-Changes');
+db.changes({
+  onChange: function() {
+    console.log('Ch-Ch-Changes');
+  }
 });
 
 db.replicate.to('http://example.com/mydb');

@@ -1,5 +1,6 @@
 'use strict';
-var extend = require('pouchdb-extend');
+
+var extend = require('./deps/extend');
 
 
 // for a better overview of what this is doing, read:
@@ -40,9 +41,8 @@ function mergeTree(in_tree1, in_tree2) {
     var tree2 = item.tree2;
 
     if (tree1[1].status || tree2[1].status) {
-      tree1[1].status =
-        (tree1[1].status ===  'available' ||
-         tree2[1].status === 'available') ? 'available' : 'missing';
+      tree1[1].status = (tree1[1].status ===  'available' ||
+                         tree2[1].status === 'available') ? 'available' : 'missing';
     }
 
     for (var i = 0; i < tree2[2].length; i++) {
@@ -89,9 +89,9 @@ function doMerge(tree, path, dontExpand) {
       merged = true;
     } else if (dontExpand !== true) {
       // The paths start at a different position, take the earliest path and
-      // traverse up until it as at the same point from root as the path we
-      // want to merge.  If the keys match we return the longer path with the
-      // other merged After stemming we dont want to expand the trees
+      // traverse up until it as at the same point from root as the path we want to
+      // merge.  If the keys match we return the longer path with the other merged
+      // After stemming we dont want to expand the trees
 
       var t1 = branch.pos < path.pos ? branch : path;
       var t2 = branch.pos < path.pos ? path : branch;
@@ -114,8 +114,7 @@ function doMerge(tree, path, dontExpand) {
         }
         /*jshint loopfunc:true */
         item.ids[2].forEach(function (el, idx) {
-          trees.push(
-            {ids: el, diff: item.diff - 1, parent: item.ids, parentIdx: idx});
+          trees.push({ids: el, diff: item.diff - 1, parent: item.ids, parentIdx: idx});
         });
       }
 
@@ -212,18 +211,20 @@ PouchMerge.winningRev = function (metadata) {
 // The return value from the callback will be passed as context to all
 // children of that node
 PouchMerge.traverseRevTree = function (revs, callback) {
-  var toVisit = revs.slice();
+  var toVisit = [];
 
-  var node;
-  while ((node = toVisit.pop())) {
+  revs.forEach(function (tree) {
+    toVisit.push({pos: tree.pos, ids: tree.ids});
+  });
+  while (toVisit.length > 0) {
+    var node = toVisit.pop();
     var pos = node.pos;
     var tree = node.ids;
-    var branches = tree[2];
-    var newCtx =
-      callback(branches.length === 0, pos, tree[0], node.ctx, tree[1]);
-    for (var i = 0, len = branches.length; i < len; i++) {
-      toVisit.push({pos: pos + 1, ids: branches[i], ctx: newCtx});
-    }
+    var newCtx = callback(tree[2].length === 0, pos, tree[0], node.ctx, tree[1]);
+    /*jshint loopfunc: true */
+    tree[2].forEach(function (branch) {
+      toVisit.push({pos: pos + 1, ids: branch, ctx: newCtx});
+    });
   }
 };
 

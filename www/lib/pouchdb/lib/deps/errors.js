@@ -55,7 +55,7 @@ exports.RESERVED_ID = new PouchError({
 exports.NOT_OPEN = new PouchError({
   status: 412,
   error: 'precondition_failed',
-  reason: 'Database not open'
+  reason: 'Database not open so cannot close'
 });
 exports.UNKNOWN_ERROR = new PouchError({
   status: 500,
