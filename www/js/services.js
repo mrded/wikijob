@@ -58,11 +58,12 @@ angular.module('wj.services', [])
 
 .factory('DatabaseService', function($q, pouchdb) {
   var ready = $q.defer();
+  alert('hello');
 
-  //document.addEventListener("deviceready", function() {
+  document.addEventListener("deviceready", function() {
     console.log('** Device is ready **');
-    ready.resolve(pouchdb.create('storage'));
-  //}, false);
+    //ready.resolve(pouchdb.create('storage'));
+  }, false);
 
   return ready.promise;
 });
