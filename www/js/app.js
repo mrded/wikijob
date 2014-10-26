@@ -29,43 +29,43 @@ angular.module('wj', ['ionic', 'wj.controllers', 'wj.services', 'pouchdb'])
   // Each state's controller can be found in controllers.js
   $stateProvider
 
-    // setup an abstract state for the tabs directive
-    .state('tab', {
-      url: "/tab",
+    .state('app', {
+      url: "/app",
       abstract: true,
-      templateUrl: "templates/tabs.html"
+      templateUrl: "templates/menu.html",
+      controller: 'AppCtrl'
     })
 
     // Each tab has its own nav history stack:
-    .state('tab.jobs', {
+    .state('app.jobs', {
       url: '/jobs',
       views: {
-        'tab-jobs': {
-          templateUrl: 'templates/tab-jobs.html',
+        'menuContent' :{
+          templateUrl: "templates/jobs.html",
           controller: 'JobsCtrl'
         }
       }
     })
-    .state('tab.job-detail', {
+    .state('app.job-detail', {
       url: '/job/:jobId',
       views: {
-        'tab-jobs': {
-          templateUrl: 'templates/job-detail.html',
+        'menuContent' :{
+          templateUrl: "templates/job-detail.html",
           controller: 'JobDetailCtrl'
         }
       }
     })
 
-    .state('tab.about', {
+    .state('app.about', {
       url: '/about',
       views: {
-        'tab-about': {
-          templateUrl: 'templates/tab-about.html'
+        'menuContent' :{
+          templateUrl: "templates/about.html"
         }
       }
     });
 
   // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/tab/jobs');
+  $urlRouterProvider.otherwise('/app/about');
 
 });

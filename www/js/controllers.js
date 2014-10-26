@@ -1,5 +1,7 @@
 angular.module('wj.controllers', [])
 
+.controller('AppCtrl', function() {})
+
 .controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, Jobs) {
   $scope.reload = function() {
     $ionicLoading.show({template: 'Download jobs'});
