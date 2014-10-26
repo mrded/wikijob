@@ -33,7 +33,7 @@ angular.module('wj', ['ionic', 'wj.controllers', 'wj.services', 'pouchdb'])
       url: "/app",
       abstract: true,
       templateUrl: "templates/menu.html",
-      controller: 'AppCtrl'
+      controller: 'MenuCtrl'
     })
 
     // Each tab has its own nav history stack:

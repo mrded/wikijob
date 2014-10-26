@@ -1,6 +1,13 @@
 angular.module('wj.controllers', [])
 
-.controller('AppCtrl', function() {})
+.controller('MenuCtrl', function($rootScope, $ionicLoading, Jobs) {
+  $ionicLoading.show({template: 'Loading'});
+
+  Jobs.all().then(function(jobs) {
+    $rootScope.jobs = jobs;
+    $ionicLoading.hide();
+  });
+})
 
 .controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, Jobs) {
   $scope.reload = function() {
@@ -12,12 +19,6 @@ angular.module('wj.controllers', [])
       });
     });
   };
-
-  $ionicLoading.show({template: 'Loading'});
-  Jobs.all().then(function(jobs) {
-    $rootScope.jobs = jobs;
-    $ionicLoading.hide();
-  });
 })
 
 .controller('JobDetailCtrl', function($scope, $stateParams, Jobs) {
