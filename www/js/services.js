@@ -11,6 +11,9 @@ angular.module('wj.services', [])
 
           jobs = jobs.map(function(job) {
             job['_id'] = job.id;
+
+            job.job_role = job.job_role.split("\n");
+
             return job;
           });
 
