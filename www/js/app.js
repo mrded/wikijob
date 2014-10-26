@@ -66,6 +66,5 @@ angular.module('wj', ['ionic', 'wj.controllers', 'wj.services', 'pouchdb'])
     });
 
   // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/app/about');
-
+  $urlRouterProvider.otherwise('/app/jobs');
 });
