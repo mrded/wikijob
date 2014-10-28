@@ -3,6 +3,12 @@ angular.module('wj.controllers', [])
 .controller('MenuCtrl', function($rootScope, $scope, $ionicLoading, Jobs) {
   $ionicLoading.show({template: 'Loading'});
 
+  $scope.load = function(industry) {
+    Jobs.load(industry).then(function(jobs) {
+      $rootScope.jobs = jobs;
+    });
+  };
+
   Jobs.all().then(function(jobs) {
     $rootScope.jobs = jobs;
 

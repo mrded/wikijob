@@ -11,6 +11,7 @@ angular.module('wj.services', [])
 
           jobs = jobs.map(function(job) {
             job['_id'] = job.id;
+            job['key'] = 'jobs';
 
             job.job_role = job.job_role.split("\n");
 
@@ -31,10 +32,36 @@ angular.module('wj.services', [])
 
       //WAT?: DatabaseService is empty O_o
       DatabaseService.then(function(db) {
-        db.allDocs({include_docs: true, descending: true}, function(err, doc) {
+        db.allDocs({
+          include_docs: true,
+          descending: true
+        }, function(err, doc) {
           if (err) alert(err.message);
 
           deferred.resolve(doc.rows.map(function(row) {
+            return row.doc;
+          }));
+        });
+      });
+
+      return deferred.promise;
+    },
+
+    load: function(industry) {
+      var deferred = $q.defer();
+
+      DatabaseService.then(function(db) {
+        console.log('industry', industry);
+
+        //@TODO: How to pass 'industry' variable into map()?
+        var map = function(doc) {
+          for (var i = 0; i < doc.job_role.length; ++i) {
+            if (doc.job_role[i] === 'Engineering') emit();
+          }
+        };
+
+        db.query(map, {include_docs: true}).then(function(response) {
+          deferred.resolve(response.rows.map(function(row) {
             return row.doc;
           }));
         });
@@ -64,7 +91,7 @@ angular.module('wj.services', [])
 
   document.addEventListener("deviceready", function() {
     console.log('** Device is ready **');
-    ready.resolve(pouchdb.create('storage'));
+    ready.resolve(pouchdb.create('wikijob'));
   }, false);
 
   return ready.promise;
