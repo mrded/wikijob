@@ -51,16 +51,13 @@ angular.module('wj.services', [])
       var deferred = $q.defer();
 
       DatabaseService.then(function(db) {
-        console.log('industry', industry);
-
-        //@TODO: How to pass 'industry' variable into map()?
         var map = function(doc) {
           for (var i = 0; i < doc.job_role.length; ++i) {
-            if (doc.job_role[i] === 'Engineering') emit();
+            emit(doc.job_role[i]);
           }
         };
 
-        db.query(map, {include_docs: true}).then(function(response) {
+        db.query(map, {key: industry, include_docs: true}).then(function(response) {
           deferred.resolve(response.rows.map(function(row) {
             return row.doc;
           }));
