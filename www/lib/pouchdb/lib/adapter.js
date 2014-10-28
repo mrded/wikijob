@@ -4,6 +4,9 @@ var utils = require('./utils');
 var merge = require('./merge');
 var errors = require('./deps/errors');
 var EventEmitter = require('events').EventEmitter;
+var upsert = require('./deps/upsert');
+var Changes = require('./changes');
+var Promise = utils.Promise;
 
 /*
  * A generic pouch adapter
@@ -58,6 +61,39 @@ function computeHeight(revs) {
   return height;
 }
 
+function allDocsKeysQuery(api, opts, callback) {
+  var keys =  ('limit' in opts) ?
+      opts.keys.slice(opts.skip, opts.limit + opts.skip) :
+      (opts.skip > 0) ? opts.keys.slice(opts.skip) : opts.keys;
+  if (opts.descending) {
+    keys.reverse();
+  }
+  if (!keys.length) {
+    return api._allDocs({limit: 0}, callback);
+  }
+  var finalResults = {
+    offset: opts.skip
+  };
+  return Promise.all(keys.map(function (key, i) {
+    var subOpts = utils.extend(true, {key: key, deleted: 'ok'}, opts);
+    ['limit', 'skip', 'keys'].forEach(function (optKey) {
+      delete subOpts[optKey];
+    });
+    return new Promise(function (resolve, reject) {
+      api._allDocs(subOpts, function (err, res) {
+        if (err) {
+          return reject(err);
+        }
+        finalResults.total_rows = res.total_rows;
+        resolve(res.rows[0] || {key: key, error: 'not_found'});
+      });
+    });
+  })).then(function (results) {
+    finalResults.rows = results;
+    return finalResults;
+  });
+}
+
 utils.inherits(AbstractPouchDB, EventEmitter);
 module.exports = AbstractPouchDB;
 
@@ -65,7 +101,8 @@ function AbstractPouchDB() {
   var self = this;
   EventEmitter.call(this);
   self.autoCompact = function (callback) {
-    if (!self.auto_compaction) {
+    // http doesn't have auto-compaction
+    if (!self.auto_compaction || self.type() === 'http') {
       return callback;
     }
     return function (err, res) {
@@ -79,8 +116,11 @@ function AbstractPouchDB() {
             callback(null, res);
           }
         };
+        if (!res.length) {
+          return callback(null, res);
+        }
         res.forEach(function (doc) {
-          if (doc.ok) {
+          if (doc.ok && doc.id) { // if no id, then it was a local doc
             // TODO: we need better error handling
             self.compactDocument(doc.id, 1, decCount);
           } else {
@@ -109,7 +149,7 @@ function AbstractPouchDB() {
       conflicts: true,
       include_docs: true,
       continuous: true,
-      since: 'latest',
+      since: 'now',
       onChange: function (change) {
         if (change.seq <= lastChange) {
           return;
@@ -139,7 +179,8 @@ function AbstractPouchDB() {
   });
 }
 
-AbstractPouchDB.prototype.post = utils.adapterFun('post', function (doc, opts, callback) {
+AbstractPouchDB.prototype.post =
+  utils.adapterFun('post', function (doc, opts, callback) {
   if (typeof opts === 'function') {
     callback = opts;
     opts = {};
@@ -147,11 +188,12 @@ AbstractPouchDB.prototype.post = utils.adapterFun('post', function (doc, opts, c
   if (typeof doc !== 'object' || Array.isArray(doc)) {
     return callback(errors.NOT_AN_OBJECT);
   }
-  return this.bulkDocs({docs: [doc]}, opts,
+  this.bulkDocs({docs: [doc]}, opts,
       this.autoCompact(yankError(callback)));
 });
 
-AbstractPouchDB.prototype.put = utils.adapterFun('put', utils.getArguments(function (args) {
+AbstractPouchDB.prototype.put =
+  utils.adapterFun('put', utils.getArguments(function (args) {
   var temp, temptype, opts, callback;
   var doc = args.shift();
   var id = '_id' in doc;
@@ -159,7 +201,7 @@ AbstractPouchDB.prototype.put = utils.adapterFun('put', utils.getArguments(funct
     callback = args.pop();
     return callback(errors.NOT_AN_OBJECT);
   }
-  doc = utils.extend(true, {}, doc);
+  doc = utils.clone(doc);
   while (true) {
     temp = args.shift();
     temptype = typeof temp;
@@ -182,11 +224,20 @@ AbstractPouchDB.prototype.put = utils.adapterFun('put', utils.getArguments(funct
   if (error) {
     return callback(error);
   }
-  return this.bulkDocs({docs: [doc]}, opts,
+  if (utils.isLocalId(doc._id) && typeof this._putLocal === 'function') {
+    if (doc._deleted) {
+      return this._removeLocal(doc, callback);
+    } else {
+      return this._putLocal(doc, callback);
+    }
+  }
+  this.bulkDocs({docs: [doc]}, opts,
       this.autoCompact(yankError(callback)));
 }));
 
-AbstractPouchDB.prototype.putAttachment = utils.adapterFun('putAttachment', function (docId, attachmentId, rev, blob, type, callback) {
+AbstractPouchDB.prototype.putAttachment =
+  utils.adapterFun('putAttachment', function (docId, attachmentId, rev,
+                                              blob, type, callback) {
   var api = this;
   if (typeof type === 'function') {
     callback = type;
@@ -206,30 +257,28 @@ AbstractPouchDB.prototype.putAttachment = utils.adapterFun('putAttachment', func
       content_type: type,
       data: blob
     };
-    api.put(doc, callback);
+    return api.put(doc);
   }
 
-  api.get(docId, function (err, doc) {
-    // create new doc
-    if (err && err.error === errors.MISSING_DOC.error) {
-      createAttachment({_id: docId});
-      return;
-    }
-    if (err) {
-      callback(err);
-      return;
-    }
-
+  return api.get(docId).then(function (doc) {
     if (doc._rev !== rev) {
-      callback(errors.REV_CONFLICT);
-      return;
+      throw errors.REV_CONFLICT;
     }
 
-    createAttachment(doc);
+    return createAttachment(doc);
+  }, function (err) {
+     // create new doc
+    if (err.error === errors.MISSING_DOC.error) {
+      return createAttachment({_id: docId});
+    } else {
+      throw err;
+    }
   });
 });
 
-AbstractPouchDB.prototype.removeAttachment = utils.adapterFun('removeAttachment', function (docId, attachmentId, rev, callback) {
+AbstractPouchDB.prototype.removeAttachment =
+  utils.adapterFun('removeAttachment', function (docId, attachmentId, rev,
+                                                 callback) {
   var self = this;
   self.get(docId, function (err, obj) {
     if (err) {
@@ -251,36 +300,61 @@ AbstractPouchDB.prototype.removeAttachment = utils.adapterFun('removeAttachment'
   });
 });
 
-AbstractPouchDB.prototype.remove = utils.adapterFun('remove', function (doc, opts, callback) {
-  if (typeof opts === 'function') {
-    callback = opts;
-    opts = {};
+AbstractPouchDB.prototype.remove =
+  utils.adapterFun('remove', function (docOrId, optsOrRev, opts, callback) {
+  var doc;
+  if (typeof optsOrRev === 'string') {
+    // id, rev, opts, callback style
+    doc = {
+      _id: docOrId,
+      _rev: optsOrRev
+    };
+    if (typeof opts === 'function') {
+      callback = opts;
+      opts = {};
+    }
+  } else {
+    // doc, opts, callback style
+    doc = docOrId;
+    if (typeof optsOrRev === 'function') {
+      callback = optsOrRev;
+      opts = {};
+    } else {
+      callback = opts;
+      opts = optsOrRev;
+    }
   }
-  if (opts === undefined) {
-    opts = {};
-  }
-  opts = utils.extend(true, {}, opts);
+  opts = utils.clone(opts || {});
   opts.was_delete = true;
-  var newDoc = {_id: doc._id, _rev: doc._rev};
+  var newDoc = {_id: doc._id, _rev: (doc._rev || opts.rev)};
   newDoc._deleted = true;
-  return this.bulkDocs({docs: [newDoc]}, opts, yankError(callback));
+  if (utils.isLocalId(newDoc._id) && typeof this._removeLocal === 'function') {
+    return this._removeLocal(doc, callback);
+  }
+  this.bulkDocs({docs: [newDoc]}, opts, yankError(callback));
 });
 
-AbstractPouchDB.prototype.revsDiff = utils.adapterFun('revsDiff', function (req, opts, callback) {
+AbstractPouchDB.prototype.revsDiff =
+  utils.adapterFun('revsDiff', function (req, opts, callback) {
   if (typeof opts === 'function') {
     callback = opts;
     opts = {};
   }
-  opts = utils.extend(true, {}, opts);
+  opts = utils.clone(opts);
   var ids = Object.keys(req);
+
+  if (!ids.length) {
+    return callback(null, {});
+  }
+
   var count = 0;
-  var missing = {};
+  var missing = new utils.Map();
 
   function addToMissing(id, revId) {
-    if (!missing[id]) {
-      missing[id] = {missing: []};
+    if (!missing.has(id)) {
+      missing.set(id, {missing: []});
     }
-    missing[id].missing.push(revId);
+    missing.get(id).missing.push(revId);
   }
 
   function processDoc(id, rev_tree) {
@@ -309,8 +383,8 @@ AbstractPouchDB.prototype.revsDiff = utils.adapterFun('revsDiff', function (req,
 
   ids.map(function (id) {
     this._getRevisionTree(id, function (err, rev_tree) {
-      if (err && err.name === 'not_found' && err.message === 'missing') {
-        missing[id] = {missing: req[id]};
+      if (err && err.status === 404 && err.message === 'missing') {
+        missing.set(id, {missing: req[id]});
       } else if (err) {
         return callback(err);
       } else {
@@ -318,7 +392,12 @@ AbstractPouchDB.prototype.revsDiff = utils.adapterFun('revsDiff', function (req,
       }
 
       if (++count === ids.length) {
-        return callback(null, missing);
+        // convert LazyMap to object
+        var missingObj = {};
+        missing.forEach(function (value, key) {
+          missingObj[key] = value;
+        });
+        return callback(null, missingObj);
       }
     });
   }, this);
@@ -327,7 +406,8 @@ AbstractPouchDB.prototype.revsDiff = utils.adapterFun('revsDiff', function (req,
 // compact one document and fire callback
 // by compacting we mean removing all revisions which
 // are further from the leaf in revision tree than max_height
-AbstractPouchDB.prototype.compactDocument = function (docId, max_height, callback) {
+AbstractPouchDB.prototype.compactDocument =
+  utils.adapterFun('compactDocument', function (docId, max_height, callback) {
   var self = this;
   this._getRevisionTree(docId, function (err, rev_tree) {
     if (err) {
@@ -351,45 +431,85 @@ AbstractPouchDB.prototype.compactDocument = function (docId, max_height, callbac
     });
     self._doCompaction(docId, rev_tree, revs, callback);
   });
-};
+});
 
 // compact the whole database using single document
 // compaction
-AbstractPouchDB.prototype.compact = utils.adapterFun('compact', function (opts, callback) {
+AbstractPouchDB.prototype.compact =
+  utils.adapterFun('compact', function (opts, callback) {
   if (typeof opts === 'function') {
     callback = opts;
     opts = {};
   }
   var self = this;
-  this.changes({complete: function (err, res) {
-    if (err) {
-      callback(); // TODO: silently fail
-      return;
-    }
-    var count = res.results.length;
-    if (!count) {
-      callback();
-      return;
-    }
-    res.results.forEach(function (row) {
-      self.compactDocument(row.id, 0, function () {
-        count--;
-        if (!count) {
-          callback();
-        }
-      });
-    });
-  }});
-});
 
-/* Begin api wrappers. Specific functionality to storage belongs in the _[method] */
-AbstractPouchDB.prototype.get = utils.adapterFun('get', function (id, opts, callback) {
+  opts = utils.clone(opts || {});
+
+  self.get('_local/compaction').catch(function () {
+    return false;
+  }).then(function (doc) {
+    if (typeof self._compact === 'function') {
+      if (doc && doc.last_seq) {
+        opts.last_seq = doc.last_seq;
+      }
+      return self._compact(opts, callback);
+    }
+
+  });
+});
+AbstractPouchDB.prototype._compact = function (opts, callback) {
+  var done = false;
+  var started = 0;
+  var copts = {
+    returnDocs: false
+  };
+  var self = this;
+  var lastSeq;
+  function finish() {
+    self.get('_local/compaction').catch(function () {
+      return false;
+    }).then(function (doc) {
+      doc = doc || {_id: '_local/compaction'};
+      doc.last_seq = lastSeq;
+      return self.put(doc);
+    }).then(function () {
+      callback();
+    }, callback);
+  }
+  if (opts.last_seq) {
+    copts.since = opts.last_seq;
+  }
+  function afterCompact() {
+    started--;
+    if (!started && done) {
+      finish();
+    }
+  }
+  function onChange(row) {
+    started++;
+    self.compactDocument(row.id, 0).then(afterCompact, callback);
+  }
+  self.changes(copts).on('change', onChange).on('complete', function (resp) {
+    done = true;
+    lastSeq = resp.last_seq;
+    if (!started) {
+      finish();
+    }
+  }).on('error', callback);
+};
+/* Begin api wrappers. Specific functionality to storage belongs in the 
+   _[method] */
+AbstractPouchDB.prototype.get =
+  utils.adapterFun('get', function (id, opts, callback) {
   if (typeof opts === 'function') {
     callback = opts;
     opts = {};
   }
   if (typeof id !== 'string') {
     return callback(errors.INVALID_ID);
+  }
+  if (utils.isLocalId(id) && typeof this._getLocal === 'function') {
+    return this._getLocal(id, callback);
   }
   var leaves = [], self = this;
   function finishOpenRevs() {
@@ -400,7 +520,9 @@ AbstractPouchDB.prototype.get = utils.adapterFun('get', function (id, opts, call
     }
     // order with open_revs is unspecified
     leaves.forEach(function (leaf) {
-      self.get(id, {rev: leaf, revs: opts.revs, attachments: opts.attachments}, function (err, doc) {
+      self.get(id,
+               {rev: leaf, revs: opts.revs, attachments: opts.attachments},
+               function (err, doc) {
         if (!err) {
           result.push({ok: doc});
         } else {
@@ -448,12 +570,16 @@ AbstractPouchDB.prototype.get = utils.adapterFun('get', function (id, opts, call
   }
 
   return this._get(id, opts, function (err, result) {
-    opts = utils.extend(true, {}, opts);
+    opts = utils.clone(opts);
     if (err) {
       return callback(err);
     }
 
     var doc = result.doc;
+    if (!doc) {
+      // a smoke test for something being very wrong
+      return callback(new Error('no doc!'));
+    }
     var metadata = result.metadata;
     var ctx = result.ctx;
 
@@ -471,8 +597,10 @@ AbstractPouchDB.prototype.get = utils.adapterFun('get', function (id, opts, call
           .indexOf(doc._rev.split('-')[1]) !== -1;
       });
 
-      path.ids.splice(path.ids.map(function (x) {return x.id; })
-                      .indexOf(doc._rev.split('-')[1]) + 1);
+      var indexOfRev = path.ids.map(function (x) {return x.id; })
+        .indexOf(doc._rev.split('-')[1]) + 1;
+      var howMany = path.ids.length - indexOfRev;
+      path.ids.splice(indexOfRev, howMany);
       path.ids.reverse();
 
       if (opts.revs) {
@@ -506,8 +634,11 @@ AbstractPouchDB.prototype.get = utils.adapterFun('get', function (id, opts, call
         return callback(null, doc);
       }
       Object.keys(attachments).forEach(function (key) {
-        this._getAttachment(attachments[key], {encode: true, ctx: ctx}, function (err, data) {
-          doc._attachments[key].data = data;
+        this._getAttachment(attachments[key],
+                            {encode: true, ctx: ctx}, function (err, data) {
+          var att = doc._attachments[key];
+          att.data = data;
+          delete att.stub;
           if (!--count) {
             callback(null, doc);
           }
@@ -526,13 +657,15 @@ AbstractPouchDB.prototype.get = utils.adapterFun('get', function (id, opts, call
   });
 });
 
-AbstractPouchDB.prototype.getAttachment = utils.adapterFun('getAttachment', function (docId, attachmentId, opts, callback) {
+AbstractPouchDB.prototype.getAttachment =
+  utils.adapterFun('getAttachment', function (docId, attachmentId, opts,
+                                              callback) {
   var self = this;
   if (opts instanceof Function) {
     callback = opts;
     opts = {};
   }
-  opts = utils.extend(true, {}, opts);
+  opts = utils.clone(opts);
   this._get(docId, opts, function (err, res) {
     if (err) {
       return callback(err);
@@ -546,182 +679,48 @@ AbstractPouchDB.prototype.getAttachment = utils.adapterFun('getAttachment', func
   });
 });
 
-AbstractPouchDB.prototype.allDocs = utils.adapterFun('allDocs', function (opts, callback) {
+AbstractPouchDB.prototype.allDocs =
+  utils.adapterFun('allDocs', function (opts, callback) {
   if (typeof opts === 'function') {
     callback = opts;
     opts = {};
   }
-  opts = utils.extend(true, {}, opts);
+  opts = utils.clone(opts);
+  opts.skip = typeof opts.skip !== 'undefined' ? opts.skip : 0;
   if ('keys' in opts) {
-    var incompatibleOpt = ['startkey', 'endkey', 'key'].filter(function (incompatibleOpt) {
+    if (!Array.isArray(opts.keys)) {
+      return callback(new TypeError('options.keys must be an array'));
+    }
+    var incompatibleOpt =
+      ['startkey', 'endkey', 'key'].filter(function (incompatibleOpt) {
       return incompatibleOpt in opts;
     })[0];
     if (incompatibleOpt) {
       callback(errors.error(errors.QUERY_PARSE_ERROR,
-        'Query parameter `' + incompatibleOpt + '` is not compatible with multi-get'
+        'Query parameter `' + incompatibleOpt +
+        '` is not compatible with multi-get'
       ));
       return;
     }
-  }
-  if (typeof opts.skip === 'undefined') {
-    opts.skip = 0;
+    if (this.type() !== 'http') {
+      return allDocsKeysQuery(this, opts, callback);
+    }
   }
 
   return this._allDocs(opts, callback);
 });
 
-function processChange(doc, metadata, opts) {
-  var changeList = [{rev: doc._rev}];
-  if (opts.style === 'all_docs') {
-    changeList = merge.collectLeaves(metadata.rev_tree)
-    .map(function (x) { return {rev: x.rev}; });
+AbstractPouchDB.prototype.changes = function (opts, callback) {
+  if (typeof opts === 'function') {
+    callback = opts;
+    opts = {};
   }
-  var change = {
-    id: metadata.id,
-    changes: changeList,
-    doc: doc
-  };
-
-  if (utils.isDeleted(metadata, doc._rev)) {
-    change.deleted = true;
-  }
-  if (opts.conflicts) {
-    change.doc._conflicts = merge.collectConflicts(metadata);
-    if (!change.doc._conflicts.length) {
-      delete change.doc._conflicts;
-    }
-  }
-  return change;
-}
-
-function doChanges(api, opts, promise) {
-
-  var callback = opts.complete;
-
-  opts = utils.extend(true, {}, opts);
-  if ('live' in opts && !('continuous' in opts)) {
-    opts.continuous = opts.live;
-  }
-  opts.processChange = processChange;
-
-  if (!opts.since) {
-    opts.since = 0;
-  }
-  if (opts.since === 'latest') {
-    api.info(function (err, info) {
-      if (promise.isCancelled) {
-        callback(null, {status: 'cancelled'});
-        return;
-      }
-      if (err) {
-        callback(err);
-        return;
-      }
-      opts.since = info.update_seq  - 1;
-      doChanges(api, opts, promise, callback);
-    });
-    return;
-  }
-
-  if (api.type() !== 'http' && opts.filter && typeof opts.filter === 'string') {
-    if (opts.filter === '_view') {
-      if (opts.view && typeof opts.view === 'string') {
-        // fetch a view from a design doc, make it behave like a filter
-        var viewName = opts.view.split('/');
-        api.get('_design/' + viewName[0], function (err, ddoc) {
-          if (promise.isCancelled) {
-            callback(null, {status: 'cancelled'});
-            return;
-          }
-          if (err) {
-            callback(err);
-            return;
-          }
-          if (ddoc && ddoc.views && ddoc.views[viewName[1]]) {
-            /*jshint evil: true */
-            var filter = eval('(function () {' +
-                              '  return function (doc) {' +
-                              '    var emitted = false;' +
-                              '    var emit = function (a, b) {' +
-                              '      emitted = true;' +
-                              '    };' +
-                              '    var view = ' + ddoc.views[viewName[1]].map + ';' +
-                              '    view(doc);' +
-                              '    if (emitted) {' +
-                              '      return true;' +
-                              '    }' +
-                              '  }' +
-                              '})()');
-            opts.filter = filter;
-            doChanges(api, opts, promise, callback);
-            return;
-          } else {
-            var msg = ddoc.views ? 'missing json key: ' + viewName[1] :
-              'missing json key: views';
-            err = err || errors.error(errors.MISSING_DOC, msg);
-            callback(err);
-            return;
-          }
-        });
-      } else {
-        var err = errors.error(errors.BAD_REQUEST,
-                              '`view` filter parameter is not provided.');
-        callback(err);
-        return;
-      }
-    } else {
-      // fetch a filter from a design doc
-      var filterName = opts.filter.split('/');
-      api.get('_design/' + filterName[0], function (err, ddoc) {
-        if (promise.isCancelled) {
-          callback(null, {status: 'cancelled'});
-          return;
-        }
-        if (err) {
-          callback(err);
-          return;
-        }
-        if (ddoc && ddoc.filters && ddoc.filters[filterName[1]]) {
-          /*jshint evil: true */
-          var filter = eval('(function () { return ' +
-                            ddoc.filters[filterName[1]] + ' })()');
-          opts.filter = filter;
-          doChanges(api, opts, promise, callback);
-          return;
-        } else {
-          var msg = (ddoc && ddoc.filters) ? 'missing json key: ' + filterName[1]
-            : 'missing json key: filters';
-          err = err || errors.error(errors.MISSING_DOC, msg);
-          callback(err);
-          return;
-        }
-      });
-    }
-    return;
-  }
-
-  if (!('descending' in opts)) {
-    opts.descending = false;
-  }
-
-  // 0 and 1 should return 1 document
-  opts.limit = opts.limit === 0 ? 1 : opts.limit;
-  opts.complete = callback;
-  var newPromise = api._changes(opts);
-  if (newPromise && typeof newPromise.cancel === 'function') {
-    var cancel = promise.cancel;
-    promise.cancel = utils.getArguments(function (args) {
-      newPromise.cancel();
-      cancel.apply(this, args);
-    });
-  }
-}
-
-AbstractPouchDB.prototype.changes = function (opts) {
-  return utils.cancellableFun(doChanges, this, opts);
+  return new Changes(this, opts, callback);
 };
 
-AbstractPouchDB.prototype.close = utils.adapterFun('close', function (callback) {
+AbstractPouchDB.prototype.close =
+  utils.adapterFun('close', function (callback) {
+  this._closed = true;
   return this._close(callback);
 });
 
@@ -731,10 +730,9 @@ AbstractPouchDB.prototype.info = utils.adapterFun('info', function (callback) {
     if (err) {
       return callback(err);
     }
-    var len = self.prefix.length;
-    if (info.db_name.length > len && info.db_name.slice(0, len) === self.prefix) {
-      info.db_name = info.db_name.slice(len);
-    }
+    // assume we know better than the adapter, unless it informs us
+    info.db_name = info.db_name || self._db_name;
+    info.auto_compaction = !!(self._auto_compaction && self.type() !== 'http');
     callback(null, info);
   });
 });
@@ -747,23 +745,23 @@ AbstractPouchDB.prototype.type = function () {
   return (typeof this._type === 'function') ? this._type() : this.adapter;
 };
 
-AbstractPouchDB.prototype.bulkDocs = utils.adapterFun('bulkDocs', function (req, opts, callback) {
+AbstractPouchDB.prototype.bulkDocs =
+  utils.adapterFun('bulkDocs', function (req, opts, callback) {
   if (typeof opts === 'function') {
     callback = opts;
     opts = {};
   }
-  if (!opts) {
-    opts = {};
-  } else {
-    opts = utils.extend(true, {}, opts);
+
+  opts = utils.clone(opts);
+
+  if (Array.isArray(req)) {
+    req = {
+      docs: req
+    };
   }
 
-  if (!req || !req.docs) {
+  if (!req || !req.docs || !Array.isArray(req.docs)) {
     return callback(errors.MISSING_BULK_DOCS);
-  }
-
-  if (!Array.isArray(req.docs)) {
-    return callback(errors.QUERY_PARSE_ERROR);
   }
 
   for (var i = 0; i < req.docs.length; ++i) {
@@ -772,7 +770,7 @@ AbstractPouchDB.prototype.bulkDocs = utils.adapterFun('bulkDocs', function (req,
     }
   }
 
-  req = utils.extend(true, {}, req);
+  req = utils.clone(req);
   if (!('new_edits' in opts)) {
     if ('new_edits' in req) {
       opts.new_edits = req.new_edits;
@@ -782,4 +780,24 @@ AbstractPouchDB.prototype.bulkDocs = utils.adapterFun('bulkDocs', function (req,
   }
 
   return this._bulkDocs(req, opts, this.autoCompact(callback));
+});
+
+AbstractPouchDB.prototype.registerDependentDatabase =
+  utils.adapterFun('registerDependentDatabase', function (dependentDb,
+                                                          callback) {
+  var depDB = new this.constructor(dependentDb, {adapter: this._adapter});
+  function diffFun(doc) {
+    doc.dependentDbs = doc.dependentDbs || {};
+    if (doc.dependentDbs[dependentDb]) {
+      return false; // no update required
+    }
+    doc.dependentDbs[dependentDb] = true;
+    return doc;
+  }
+  upsert(this, '_local/_pouch_dependentDbs', diffFun, function (err) {
+    if (err) {
+      return callback(err);
+    }
+    return callback(null, {db: depDB});
+  });
 });

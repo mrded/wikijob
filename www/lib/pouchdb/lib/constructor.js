@@ -1,12 +1,10 @@
 /*globals cordova */
 "use strict";
 
-var Promise = typeof global.Promise === 'function' ?
-  global.Promise : require('bluebird');
-
 var Adapter = require('./adapter');
 var utils = require('./utils');
 var TaskQueue = require('./taskqueue');
+var Promise = utils.Promise;
 
 function defaultCallback(err) {
   if (err && global.debug) {
@@ -26,7 +24,7 @@ function PouchDB(name, opts, callback) {
     opts = {};
   }
 
-  if (typeof name === 'object') {
+  if (name && typeof name === 'object') {
     opts = name;
     name = undefined;
   }
@@ -48,7 +46,7 @@ function PouchDB(name, opts, callback) {
       fulfill(resp);
     };
   
-    opts = utils.extend(true, {}, opts);
+    opts = utils.clone(opts);
     var originalName = opts.name || name;
     var backend, error;
     (function () {
@@ -64,8 +62,13 @@ function PouchDB(name, opts, callback) {
         
         opts.originalName = originalName;
         opts.name = backend.name;
+        if (opts.prefix && backend.adapter !== 'http' &&
+            backend.adapter !== 'https') {
+          opts.name = opts.prefix + opts.name;
+        }
         opts.adapter = opts.adapter || backend.adapter;
-
+        self._adapter = opts.adapter;
+        self._db_name = originalName;
         if (!PouchDB.adapters[opts.adapter]) {
           error = new Error('Adapter is missing');
           error.code = 404;
@@ -92,39 +95,21 @@ function PouchDB(name, opts, callback) {
     self.adapter = opts.adapter;
 
     // needs access to PouchDB;
-    self.replicate = function (src, target, opts) {
-      return utils.cancellableFun(function (api, _opts, promise) {
-        var replicate = PouchDB.replicate(src, target, opts);
-        promise.cancel = replicate.cancel;
-      }, self, opts);
-    };
+    self.replicate = {};
 
     self.replicate.from = function (url, opts, callback) {
-      if (typeof opts === 'function') {
-        callback = opts;
-        opts = {};
-      }
-      return PouchDB.replicate(url, self, opts, callback);
+      return self.constructor.replicate(url, self, opts, callback);
     };
 
     self.replicate.to = function (url, opts, callback) {
-      if (typeof opts === 'function') {
-        callback = opts;
-        opts = {};
-      }
-      return PouchDB.replicate(self, url, opts, callback);
+      return self.constructor.replicate(self, url, opts, callback);
     };
 
-    self.replicate.sync = function (dbName, opts, callback) {
-      if (typeof opts === 'function') {
-        callback = opts;
-        opts = {};
-      }
-      return utils.cancellableFun(function (api, _opts, promise) {
-        var sync = PouchDB.sync(self, dbName, opts, callback);
-        promise.cancel = sync.cancel;
-      }, self, opts);
+    self.sync = function (dbName, opts, callback) {
+      return self.constructor.sync(self, dbName, opts, callback);
     };
+
+    self.replicate.sync = self.sync;
 
     self.destroy = utils.adapterFun('destroy', function (callback) {
       var self = this;
@@ -132,7 +117,7 @@ function PouchDB(name, opts, callback) {
         if (err) {
           return callback(err);
         }
-        PouchDB.destroy(info.db_name, callback);
+        self.constructor.destroy(info.db_name, callback);
       });
     });
 
@@ -147,10 +132,10 @@ function PouchDB(name, opts, callback) {
       function destructionListener(event) {
         if (event === 'destroyed') {
           self.emit('destroyed');
-          PouchDB.removeListener(opts.name, destructionListener);
+          PouchDB.removeListener(originalName, destructionListener);
         }
       }
-      PouchDB.on(opts.name, destructionListener);
+      PouchDB.on(originalName, destructionListener);
       self.emit('created', self);
       PouchDB.emit('created', opts.originalName);
       self.taskqueue.ready(self);
@@ -170,12 +155,8 @@ function PouchDB(name, opts, callback) {
     oldCB(null, resp);
   }, oldCB);
   self.then = promise.then.bind(promise);
-  //prevent deoptimizing
-  (function () {
-    try {
-      self['catch'] = promise['catch'].bind(promise);
-    } catch (e) {}
-  }());
+  self.catch = promise.catch.bind(promise);
+
 }
 
 module.exports = PouchDB;
