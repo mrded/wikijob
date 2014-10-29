@@ -14,12 +14,17 @@ angular.module('wj.services', [])
           return job;
         });
 
-        pouchdb.bulkDocs({docs: jobs}, function(err, response) {
-          if (err) {
-            deferred.reject(err);
-          } else {
-            deferred.resolve(response)
-          }
+        // @TODO: Should be a better way to reset all data.
+        pouchdb.destroy(function() { // Delete all docs.
+          pouchdb = new PouchDB('wikijob');
+
+          pouchdb.bulkDocs({docs: jobs}, function(err, response) {
+            if (err) {
+              deferred.reject(err);
+            } else {
+              deferred.resolve(response)
+            }
+          });
         });
       });
 
