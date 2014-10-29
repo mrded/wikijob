@@ -12,12 +12,13 @@ angular.module('wj.controllers', [])
 
   $ionicLoading.show({template: 'Loading'});
 
+  $rootScope.industries = [];
+
   Jobs.all().then(function(jobs) {
     $rootScope.jobs = jobs;
 
-    $scope.industries = [];
     angular.forEach(jobs, function(job) {
-      $scope.industries = $scope.industries.concat(job.job_role).unique().filter(Boolean);
+      $rootScope.industries = $rootScope.industries.concat(job.job_role).unique().filter(Boolean);
     });
 
     $ionicLoading.hide();
@@ -31,6 +32,12 @@ angular.module('wj.controllers', [])
     Jobs.reload().then(function(jobs) {
       Jobs.all().then(function(jobs) {
         $rootScope.jobs = jobs;
+
+        // Reload menu.
+        angular.forEach(jobs, function(job) {
+          $rootScope.industries = $rootScope.industries.concat(job.job_role).unique().filter(Boolean);
+        });
+
         $ionicLoading.hide();
       });
     });
