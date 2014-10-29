@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <widget id="com.demenchuk.wikijob" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-  <name>Theatre Codes</name>
+  <name>WikiJob</name>
   <description>The mobile client for WikiJob website</description>
   <author email="dmitry@demenchuk.me" href="http://demenchuk.me/">Dmitry Demenchuk</author>
   <content src="index.html"/>
