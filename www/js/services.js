@@ -5,7 +5,7 @@ angular.module('wj.services', [])
     reload: function() {
       var deferred = $q.defer();
 
-      $http.get('/jobs.json').success(function(jobs) {
+      $http.get('http://www.wikijob.co.uk/api/jobs').success(function(jobs) {
         console.log('** Downloaded ' + jobs.length + ' jobs **');
 
         jobs = jobs.map(function(job) {
