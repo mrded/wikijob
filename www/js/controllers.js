@@ -30,16 +30,15 @@ angular.module('wj.controllers', [])
     $ionicLoading.show({template: 'Download jobs'});
 
     Jobs.reload().then(function(jobs) {
-      Jobs.all().then(function(jobs) {
-        $rootScope.jobs = jobs;
+      $rootScope.jobs.length = 0;
 
-        // Reload menu.
-        angular.forEach(jobs, function(job) {
-          $rootScope.industries = $rootScope.industries.concat(job.job_role).unique().filter(Boolean);
-        });
-
-        $ionicLoading.hide();
+      // Reload menu.
+      angular.forEach(jobs, function(job) {
+        $rootScope.jobs.push(job);
+        $rootScope.industries = $rootScope.industries.concat(job.job_role).unique().filter(Boolean);
       });
+
+      $ionicLoading.hide();
     });
   };
 })

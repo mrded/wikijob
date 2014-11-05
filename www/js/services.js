@@ -1,11 +1,32 @@
 angular.module('wj.services', [])
 
-.factory('Jobs', function($http, $q, pouchdb) {
+.factory('Jobs', function($http, $q) {
+  var db_name = 'wikijob';
+  var pouchdb = new PouchDB(db_name);
+
+  var _all = function() {
+    var deferred = $q.defer();
+
+    pouchdb.allDocs({include_docs: true, descending: true}, function(err, response) {
+      if (err) {
+        deferred.reject(err);
+      } else {
+        deferred.resolve(response.rows.map(function(row) {
+          return row.doc;
+        }));
+      }
+    });
+
+    return deferred.promise;
+  };
+
   return {
+    all: _all,
     reload: function() {
       var deferred = $q.defer();
 
-      $http.get('http://www.wikijob.co.uk/api/jobs').success(function(jobs) {
+      //$http.get('http://www.wikijob.co.uk/api/jobs').success(function(jobs) {
+      $http.get('/jobs.json').success(function(jobs) {
         console.log('** Downloaded ' + jobs.length + ' jobs **');
 
         jobs = jobs.map(function(job) {
@@ -14,34 +35,17 @@ angular.module('wj.services', [])
           return job;
         });
 
-        // @TODO: Should be a better way to reset all data.
-        pouchdb.destroy(function() { // Delete all docs.
-          pouchdb = new PouchDB('wikijob');
+        pouchdb.destroy(function() {
+          pouchdb = new PouchDB(db_name);
 
-          pouchdb.bulkDocs({docs: jobs}, function(err, response) {
+          pouchdb.bulkDocs({docs: jobs, include_docs: true}, function(err, response) {
             if (err) {
               deferred.reject(err);
             } else {
-              deferred.resolve(response)
+              deferred.resolve(_all());
             }
           });
         });
-      });
-
-      return deferred.promise;
-    },
-
-    all: function() {
-      var deferred = $q.defer();
-
-      pouchdb.allDocs({include_docs: true, descending: true}, function(err, response) {
-        if (err) {
-          deferred.reject(err);
-        } else {
-          deferred.resolve(response.rows.map(function(row) {
-            return row.doc;
-          }));
-        }
       });
 
       return deferred.promise;
@@ -84,8 +88,4 @@ angular.module('wj.services', [])
       return deferred.promise;
     }
   };
-})
-
-.factory('pouchdb', function() {
-  return new PouchDB('wikijob');
 });
