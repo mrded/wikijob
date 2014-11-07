@@ -1,10 +1,10 @@
 angular.module('wj.controllers', [])
 
-.controller('MenuCtrl', function($rootScope, $scope, $ionicLoading, Jobs) {
+.controller('MenuCtrl', function($rootScope, $scope, $ionicLoading, JobService) {
   $scope.load = function(industry) {
     $ionicLoading.show({template: 'Loading'});
 
-    Jobs.load(industry).then(function(jobs) {
+    JobService.load(industry).then(function(jobs) {
       $rootScope.jobs = jobs;
       $ionicLoading.hide();
     });
@@ -14,7 +14,7 @@ angular.module('wj.controllers', [])
 
   $rootScope.industries = [];
 
-  Jobs.all().then(function(jobs) {
+  JobService.all().then(function(jobs) {
     $rootScope.jobs = jobs;
 
     angular.forEach(jobs, function(job) {
@@ -25,11 +25,11 @@ angular.module('wj.controllers', [])
   });
 })
 
-.controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, Jobs) {
+.controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, JobService) {
   $scope.reload = function() {
     $ionicLoading.show({template: 'Download jobs'});
 
-    Jobs.reload().then(function(jobs) {
+    JobService.reload().then(function(jobs) {
       $rootScope.jobs.length = 0;
 
       // Reload menu.
@@ -43,8 +43,8 @@ angular.module('wj.controllers', [])
   };
 })
 
-.controller('JobDetailCtrl', function($scope, $stateParams, Jobs) {
-  Jobs.get($stateParams.jobId).then(function(job) {
+.controller('JobDetailCtrl', function($scope, $stateParams, JobService) {
+  JobService.get($stateParams.jobId).then(function(job) {
     $scope.job = job;
   });
 });

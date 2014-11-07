@@ -1,3 +1,4 @@
+'use strict';
 // Ionic Starter App
 
 // angular.module is a global place for creating, registering and retrieving Angular modules
@@ -59,3 +60,6 @@ angular.module('wj', ['ionic', 'wj.controllers', 'wj.services'])
   // if none of the above states are matched, use this as the fallback
   $urlRouterProvider.otherwise('/app/jobs');
 });
+
+angular.module('wj.services', []);
+angular.module('wj.controllers', []);
