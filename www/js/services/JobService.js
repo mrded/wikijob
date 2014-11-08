@@ -1,16 +1,6 @@
 'use strict';
 
 angular.module('wj.services').factory('JobService', function($http, $q, PouchService) {
-  var _getJobs = function(jobs) {
-    return jobs.map(function(job) {
-      job['_id'] = job.id;
-      job.type = 'job';
-      job.job_role = job.job_role.split("\n");
-
-      return job;
-    });
-  };
-
   return {
     all: function(db) {
       var deferred = $q.defer();
