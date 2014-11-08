@@ -12,10 +12,11 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
   };
 
   return {
-    all: function() {
+    all: function(db) {
       var deferred = $q.defer();
+      db = db || PouchService.db;
 
-      PouchService.db.query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true}, function(err, response) {
+      db.query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true}, function(err, response) {
         if (err) console.log('Cannot load jobs', err);
 
         deferred.resolve(response.rows.map(function(row) {
@@ -26,34 +27,9 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       return deferred.promise;
     },
 
-    reload: function() {
+    load: function(industry, db) {
       var deferred = $q.defer();
-
-      //$http.get('http://www.wikijob.co.uk/api/jobs').success(function(jobs) {
-      $http.get('/jobs.json').success(function(response) {
-        console.log('** Downloaded ' + response.length + ' jobs **');
-
-        PouchService.reset().then(function(db) {
-          db.bulkDocs({docs: _getJobs(response)}, function(err) {
-            if (err) console.log('Cannot add jobs', err);
-
-            db.query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true}, function(err, response) {
-              if (err) console.log('Cannot load jobs', err);
-
-              deferred.resolve(response.rows.map(function(row) {
-                return row.doc;
-              }));
-            });
-          });
-        });
-      });
-
-      return deferred.promise;
-    },
-
-    load: function(industry) {
-      var deferred = $q.defer();
-
+      db = db || PouchService.db;
 
       var map = function(doc) {
         for (var i = 0; i < doc.job_role.length; ++i) {
@@ -61,7 +37,7 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
         }
       };
 
-      PouchService.db.query(map, {key: industry, include_docs: true}, function(err, response) {
+      db.query(map, {key: industry, include_docs: true}, function(err, response) {
         if (err) {
           deferred.reject(err);
         } else {
@@ -74,15 +50,29 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       return deferred.promise;
     },
 
-    get: function(jobId) {
+    get: function(jobId, db) {
       var deferred = $q.defer();
+      db = db || PouchService.db;
 
-      PouchService.db.get(jobId, function(err, response) {
+      db.get(jobId, function(err, response) {
         if (err) {
           deferred.reject(err);
         } else {
           deferred.resolve(response);
         }
+      });
+
+      return deferred.promise;
+    },
+
+    save: function(jobs, db) {
+      var deferred = $q.defer();
+      db = db || PouchService.db;
+
+      db.bulkDocs({docs: jobs}, function(err) {
+        if (err) console.log('Cannot save jobs', err);
+
+        deferred.resolve();
       });
 
       return deferred.promise;
