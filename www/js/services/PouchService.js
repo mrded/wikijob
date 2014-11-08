@@ -1,22 +1,20 @@
 'use strict';
 
-angular.module('wj.services').factory('PouchService', function($q) {
+angular.module('wj.services').service('PouchService', function($q) {
   var db_name = 'wikijob';
   var _db = new PouchDB(db_name);
 
-  return {
-    db: _db,
+  this.db = _db;
 
-    reset: function() {
-      var deferred = $q.defer();
+  this.reset = function() {
+    var deferred = $q.defer();
 
-      _db.destroy(function() {
-        _db = new PouchDB(db_name);
+    _db.destroy(function() {
+      _db = new PouchDB(db_name);
 
-        deferred.resolve(_db);
-      });
+      deferred.resolve(_db);
+    });
 
-      return deferred.promise;
-    }
+    return deferred.promise;
   };
 });
