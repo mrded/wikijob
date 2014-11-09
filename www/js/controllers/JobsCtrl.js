@@ -1,33 +1,47 @@
 'use strict';
 
-angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, $http, JobService, PouchService) {
+angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, $http, JobService, IndustryService, PouchService) {
   $scope.reload = function() {
     $ionicLoading.show({template: 'Download jobs'});
     $rootScope.jobs = [];
     $rootScope.industries = [];
 
-    //$http.get('http://www.wikijob.co.uk/api/jobs').success(function(jobs) {
-    $http.get('/jobs.json').success(function(response) {
-      console.log('** Downloaded ' + response.length + ' jobs **');
+    // Reset database.
+    PouchService.reset().then(function() {
 
-      var _jobs = response.map(function(job) {
-        job['_id'] = job.id;
-        job.type = 'job';
-        job.job_role = job.job_role.split("\n");
+      // http://www.wikijob.co.uk/api/industries
+      $http.get('/industries.json').success(function(response) {
+        console.log('** Downloaded ' + response.length + ' industries **');
 
-        return job;
+        var industries = response.map(function(industry) {
+          industry['_id'] = industry.id;
+          industry.type = 'industry';
+
+          return industry;
+        });
+
+        IndustryService.save(industries).then(function() {
+          IndustryService.all().then(function(industries) {
+            $rootScope.industries = industries;
+          });
+        });
       });
 
-      // Reset database.
-      PouchService.reset().then(function(db) {
-        JobService.save(_jobs, db).then(function() {
-          JobService.all(db).then(function(jobs) {
-            $rootScope.jobs = jobs;
+      // http://www.wikijob.co.uk/api/jobs
+      $http.get('/jobs.json').success(function(response) {
+        console.log('** Downloaded ' + response.length + ' jobs **');
 
-            // Reload menu.
-            angular.forEach(jobs, function(job) {
-              $rootScope.industries = $rootScope.industries.concat(job.job_role).unique().filter(Boolean);
-            });
+        var jobs = response.map(function(job) {
+          job['_id'] = job.id;
+          job.type = 'job';
+          job.industries = job.industries.split(", ");
+
+          return job;
+        });
+
+        JobService.save(jobs).then(function() {
+          JobService.all().then(function(jobs) {
+            $rootScope.jobs = jobs;
 
             $ionicLoading.hide();
           });
