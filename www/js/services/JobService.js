@@ -21,8 +21,8 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
 
       var map = function(doc) {
         if (doc.type === 'job') {
-          for (var i = 0; i < doc.industries.length; ++i) {
-            emit(doc.industries[i]);
+          for (var i = 0; i < doc.industry_ids.length; ++i) {
+            emit(doc.industry_ids[i]);
           }
         }
       };

@@ -34,7 +34,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
         var jobs = response.map(function(job) {
           job['_id'] = job.id;
           job.type = 'job';
-          job.industries = job.industries.split(", ");
+          job.industry_ids = job.industry_ids.split(", ");
 
           return job;
         });
