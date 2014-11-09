@@ -28,13 +28,11 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       };
 
       db.query(map, {key: industry, include_docs: true}, function(err, response) {
-        if (err) {
-          deferred.reject(err);
-        } else {
-          deferred.resolve(response.rows.map(function(row) {
-            return row.doc;
-          }));
-        }
+        if (err) console.log('Cannot get jobs by industry', err);
+
+        deferred.resolve(response.rows.map(function(row) {
+          return row.doc;
+        }));
       });
 
       return deferred.promise;
@@ -45,11 +43,9 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       db = db || PouchService.db;
 
       db.get(jobId, function(err, response) {
-        if (err) {
-          deferred.reject(err);
-        } else {
-          deferred.resolve(response);
-        }
+        if (err) console.log('Cannot get the job', err);
+
+        deferred.resolve(response);
       });
 
       return deferred.promise;
