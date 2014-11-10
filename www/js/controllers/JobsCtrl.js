@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, $http, JobService, IndustryService, PouchService) {
+angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, $http, JobService, IndustryService, CompanyService, PouchService) {
   $scope.reload = function() {
     $ionicLoading.show({template: 'Download jobs'});
     $rootScope.jobs = [];
@@ -8,6 +8,20 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
 
     // Reset database.
     PouchService.reset().then(function() {
+
+      // http://www.wikijob.co.uk/api/companies
+      $http.get('/companies.json').success(function(response) {
+        console.log('** Downloaded ' + response.length + ' companies **');
+
+        var companies = response.map(function(company) {
+          company['_id'] = company.id;
+          company.type = 'company';
+
+          return company;
+        });
+
+        CompanyService.save(companies);
+      });
 
       // http://www.wikijob.co.uk/api/industries
       $http.get('/industries.json').success(function(response) {
