@@ -31,10 +31,19 @@ angular.module('wj.services').factory('CompanyService', function($q, PouchServic
     save: function(companies) {
       var deferred = $q.defer();
 
-      PouchService.db().bulkDocs({docs: companies}, function(err) {
+      PouchService.db().bulkDocs({docs: companies}, function(err, response) {
         if (err) console.log('Cannot save companies', err);
 
-        deferred.resolve();
+        // Add attachments.
+        angular.forEach(response, function(doc) {
+          convertImgToBase64('/mocks/300x150.gif', function(base64Img) {
+            PouchService.db().putAttachment(doc.id, 'logo', doc.rev, base64Img, 'image/png', function(err) {
+              if (err) console.log('Cannot save attachment', err);
+            });
+          });
+        });
+
+        deferred.resolve(response);
       });
 
       return deferred.promise;

@@ -10,7 +10,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
     PouchService.reset().then(function() {
 
       // http://www.wikijob.co.uk/api/companies
-      $http.get('/companies.json').success(function(response) {
+      $http.get('/mocks/companies.json').success(function(response) {
         console.log('** Downloaded ' + response.length + ' companies **');
 
         var companies = response.map(function(company) {
@@ -24,7 +24,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
       });
 
       // http://www.wikijob.co.uk/api/industries
-      $http.get('/industries.json').success(function(response) {
+      $http.get('/mocks/industries.json').success(function(response) {
         console.log('** Downloaded ' + response.length + ' industries **');
 
         var industries = response.map(function(industry) {
@@ -42,7 +42,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
       });
 
       // http://www.wikijob.co.uk/api/jobs
-      $http.get('/jobs.json').success(function(response) {
+      $http.get('/mocks/jobs.json').success(function(response) {
         console.log('** Downloaded ' + response.length + ' jobs **');
 
         var jobs = response.map(function(job) {
