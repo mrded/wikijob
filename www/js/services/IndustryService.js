@@ -15,6 +15,7 @@ angular.module('wj.services').factory('IndustryService', function($q, PouchServi
 
       return deferred.promise;
     },
+
     save: function(industries) {
       var deferred = $q.defer();
 
