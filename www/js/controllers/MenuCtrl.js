@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wj.controllers').controller('MenuCtrl', function($rootScope, $scope, $ionicLoading, JobService, IndustryService) {
+angular.module('wj.controllers').controller('MenuCtrl', function($rootScope, $scope, $ionicLoading, JobService, IndustryService, CompanyService) {
   $scope.load = function(industryId) {
     $ionicLoading.show({template: 'Loading'});
 
@@ -11,13 +11,18 @@ angular.module('wj.controllers').controller('MenuCtrl', function($rootScope, $sc
   };
 
   $ionicLoading.show({template: 'Loading'});
+  $rootScope.jobs = [];
 
   IndustryService.all().then(function(industries) {
     $rootScope.industries = industries;
 
     JobService.all().then(function(jobs) {
-      $rootScope.jobs = jobs;
-
+      angular.forEach(jobs, function(job) {
+        CompanyService.get(job.company_id).then(function(company) {
+          job.company = company;
+          $rootScope.jobs.push(job);
+        });
+      });
       $ionicLoading.hide();
     });
   });

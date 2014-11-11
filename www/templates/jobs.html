@@ -10,7 +10,7 @@
   <ion-content class="has-header">
     <ion-list>
       <ion-item ng-repeat="job in jobs" href="#/app/job/{{job.id}}" class="item-thumbnail-left">
-        <img ng-src="{{job.logo}}">
+        <img ng-src="data:image/png;base64,{{job.company._attachments.logo.data}}">
         <h2>{{job.title}}</h2>
         <p ng-if='job.location'>{{job.location}}</p>
         <p ng-if='job.job_role'>{{job.job_role.join(', ')}}</p>

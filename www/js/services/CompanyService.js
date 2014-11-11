@@ -5,7 +5,7 @@ angular.module('wj.services').factory('CompanyService', function($q, PouchServic
     all: function() {
       var deferred = $q.defer();
 
-      PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'company', include_docs: true}, function(err, response) {
+      PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'company', include_docs: true, attachments: true}, function(err, response) {
         if (err) console.log('Cannot load companies', err);
 
         deferred.resolve(response.rows.map(function(row) {
@@ -19,7 +19,7 @@ angular.module('wj.services').factory('CompanyService', function($q, PouchServic
     get: function(companyId) {
       var deferred = $q.defer();
 
-      PouchService.db().get(companyId, function(err, response) {
+      PouchService.db().get(companyId, {attachments: true}, function(err, response) {
         if (err) console.log('Cannot get the company', err);
 
         deferred.resolve(response);

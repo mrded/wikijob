@@ -55,7 +55,13 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
 
         JobService.save(jobs).then(function() {
           JobService.all().then(function(jobs) {
-            $rootScope.jobs = jobs;
+
+            angular.forEach(jobs, function(job) {
+              CompanyService.get(job.company_id).then(function(company) {
+                job.company = company;
+                $rootScope.jobs.push(job);
+              });
+            });
 
             $ionicLoading.hide();
           });
