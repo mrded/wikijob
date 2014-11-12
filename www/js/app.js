@@ -22,6 +22,16 @@ angular.module('wj', ['ionic', 'wj.controllers', 'wj.services'])
   });
 })
 
+.constant('ENV', 'dev')
+.constant('JOBS_URL', '/mocks/jobs.json')
+.constant('COMPANIES_URL', '/mocks/companies.json')
+.constant('INDUSTRIES_URL', '/mocks/industries.json')
+
+//.constant('ENV', 'live')
+//.constant('JOBS_URL', 'http://www.wikijob.co.uk/api/jobs')
+//.constant('COMPANIES_URL', 'http://www.wikijob.co.uk/api/companies')
+//.constant('INDUSTRIES_URL', 'http://www.wikijob.co.uk/api/industries')
+
 .config(function($stateProvider, $urlRouterProvider) {
 
   // Ionic uses AngularUI Router which uses the concept of states

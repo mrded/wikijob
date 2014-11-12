@@ -1,6 +1,9 @@
 'use strict';
 
-angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $scope, $ionicLoading, $http, JobService, IndustryService, CompanyService, PouchService) {
+angular.module('wj.controllers').controller('JobsCtrl', function(
+  $rootScope, $scope, $ionicLoading, $http,
+  JobService, IndustryService, CompanyService, PouchService,
+  JOBS_URL, COMPANIES_URL, INDUSTRIES_URL) {
   $scope.reload = function() {
     $ionicLoading.show({template: 'Download jobs'});
     $rootScope.jobs = [];
@@ -8,9 +11,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
 
     // Reset database.
     PouchService.reset().then(function() {
-
-      // http://www.wikijob.co.uk/api/companies
-      $http.get('/mocks/companies.json').success(function(response) {
+      $http.get(COMPANIES_URL).success(function(response) {
         console.log('** Downloaded ' + response.length + ' companies **');
 
         var companies = response.map(function(company) {
@@ -23,8 +24,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
         CompanyService.save(companies);
       });
 
-      // http://www.wikijob.co.uk/api/industries
-      $http.get('/mocks/industries.json').success(function(response) {
+      $http.get(INDUSTRIES_URL).success(function(response) {
         console.log('** Downloaded ' + response.length + ' industries **');
 
         var industries = response.map(function(industry) {
@@ -41,8 +41,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function($rootScope, $sc
         });
       });
 
-      // http://www.wikijob.co.uk/api/jobs
-      $http.get('/mocks/jobs.json').success(function(response) {
+      $http.get(JOBS_URL).success(function(response) {
         console.log('** Downloaded ' + response.length + ' jobs **');
 
         var jobs = response.map(function(job) {
