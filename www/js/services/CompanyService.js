@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wj.services').factory('CompanyService', function($q, PouchService) {
+angular.module('wj.services').factory('CompanyService', function($q, PouchService, ENV) {
   return {
     all: function() {
       var deferred = $q.defer();
@@ -29,24 +29,23 @@ angular.module('wj.services').factory('CompanyService', function($q, PouchServic
     },
 
     save: function(companies) {
-      var deferred = $q.defer();
-
-      PouchService.db().bulkDocs({docs: companies}, function(err, response) {
-        if (err) console.log('Cannot save companies', err);
+      angular.forEach(companies, function(company) {
+        var logo = (ENV === 'dev') ? '/mocks/300x150.gif' : company.logo;
 
         // Add attachments.
-        angular.forEach(response, function(doc) {
-          convertImgToBase64('/mocks/300x150.gif', function(base64Img) {
-            PouchService.db().putAttachment(doc.id, 'logo', doc.rev, base64Img, 'image/png', function(err) {
-              if (err) console.log('Cannot save attachment', err);
-            });
+        convertImgToBase64(logo, function(base64Img) {
+          company['_attachments'] = {
+            "logo": {
+              "content_type": 'image/png',
+              "data": base64Img
+            }
+          };
+
+          PouchService.db().post(company, function(err) {
+            if (err) console.log('Cannot save the company', err);
           });
         });
-
-        deferred.resolve(response);
       });
-
-      return deferred.promise;
     }
   };
 });
