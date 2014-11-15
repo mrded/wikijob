@@ -5,7 +5,7 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
     all: function() {
       var deferred = $q.defer();
 
-      PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true}, function(err, response) {
+      PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true, attachments: true}, function(err, response) {
         if (err) console.log('Cannot load jobs', err);
 
         deferred.resolve(response.rows.map(function(row) {
@@ -27,7 +27,7 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
         }
       };
 
-      PouchService.db().query(map, {key: industryId, include_docs: true}, function(err, response) {
+      PouchService.db().query(map, {key: industryId, include_docs: true, attachments: true}, function(err, response) {
         if (err) console.log('Cannot get jobs by industry', err);
 
         deferred.resolve(response.rows.map(function(row) {
@@ -41,8 +41,8 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
     get: function(jobId) {
       var deferred = $q.defer();
 
-      PouchService.db().get(jobId, function(err, response) {
-        if (err) console.log('Cannot get the job', err);
+      PouchService.db().get(jobId, {attachments: true}, function(err, response) {
+        if (err) console.log('Cannot get the job', jobId, err);
 
         deferred.resolve(response);
       });
@@ -53,19 +53,29 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
     save: function(jobs) {
       var deferred = $q.defer();
 
-      jobs = jobs.map(function(job) {
+      angular.forEach(jobs, function(job) {
         job['_id'] = job.id;
         job.type = 'job';
+
         job.industries = job.industries.split('&amp; ');
 
-        return job;
+        // Add attachments.
+        var logo = (ENV === 'dev') ? '/mocks/300x150.gif' : job.logo;
+        convertImgToBase64(logo, function(base64Img) {
+          job['_attachments'] = {
+            "logo": {
+              "content_type": 'image/png',
+              "data": base64Img
+            }
+          };
+
+          PouchService.db().post(job, function(err) {
+            if (err) console.log('Cannot save the job', job, err);
+          });
+        });
       });
 
-      PouchService.db().bulkDocs({docs: jobs}, function(err) {
-        if (err) console.log('Cannot save jobs', err);
-
-        deferred.resolve();
-      });
+      deferred.resolve();
 
       return deferred.promise;
     }
