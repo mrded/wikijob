@@ -11,16 +11,8 @@ angular.module('wj.controllers').controller('JobsCtrl', function(
 
     // Reset database.
     PouchService.reset().then(function() {
-      $http.get(JOBS_URL).success(function(response) {
-        console.log('** Downloaded ' + response.length + ' jobs **');
-
-        var jobs = response.map(function(job) {
-          job['_id'] = job.id;
-          job.type = 'job';
-          job.industries = job.industries.split('&amp; ');
-
-          return job;
-        });
+      $http.get(JOBS_URL).success(function(jobs) {
+        console.log('** Downloaded ' + jobs.length + ' jobs **');
 
         JobService.save(jobs).then(function() {
           JobService.all().then(function(jobs) {
