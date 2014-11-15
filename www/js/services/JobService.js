@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('wj.services').factory('JobService', function($http, $q, PouchService) {
+angular.module('wj.services').factory('JobService', function($http, $q, PouchService, ENV) {
   return {
     all: function() {
       var deferred = $q.defer();
@@ -52,6 +52,14 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
 
     save: function(jobs) {
       var deferred = $q.defer();
+
+      jobs = jobs.map(function(job) {
+        job['_id'] = job.id;
+        job.type = 'job';
+        job.industries = job.industries.split('&amp; ');
+
+        return job;
+      });
 
       PouchService.db().bulkDocs({docs: jobs}, function(err) {
         if (err) console.log('Cannot save jobs', err);
