@@ -1,11 +1,14 @@
-<ion-view title="{{job.title}}">
+<ion-view title="{{job.company}}">
   <ion-content has-header="true" padding="true">
 
     <div class="list">
+      <div class="item item-divider">
+        {{job.title}}
+      </div>
+
       <div class="item item-thumbnail-left">
         <img ng-src="{{job.logo}}">
 
-        <p ng-if='job.company'><strong>Company:</strong> {{job.company}}</p>
         <p ng-if='job.location'><strong>Location:</strong> {{job.location}}</p>
         <p ng-if='job.salary'><strong>Salary:</strong> {{job.salary}}</p>
         <p ng-if='job.deadline'><strong>Deadline:</strong> {{job.deadline}}</p>
