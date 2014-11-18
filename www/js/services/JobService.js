@@ -57,7 +57,7 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
         job['_id'] = job.id;
         job.type = 'job';
 
-        job.industries = job.industries.split('&amp; ');
+        job.industries = job.industries.split(',');
 
         // Add attachments.
         var logo = (ENV === 'dev') ? '/mocks/300x150.gif' : job.logo;
