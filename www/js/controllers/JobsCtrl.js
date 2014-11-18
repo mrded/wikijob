@@ -2,7 +2,7 @@
 
 angular.module('wj.controllers').controller('JobsCtrl', function(
   $rootScope, $scope, $ionicLoading, $http,
-  JobService, PouchService, JOBS_URL) {
+  JobService, PouchService, IndustryService, JOBS_URL) {
 
   $scope.reload = function() {
     $ionicLoading.show({template: 'Download jobs'});
@@ -18,7 +18,10 @@ angular.module('wj.controllers').controller('JobsCtrl', function(
           JobService.all().then(function(jobs) {
             $rootScope.jobs = jobs;
 
-            $ionicLoading.hide();
+            IndustryService.all().then(function(industries) {
+              $rootScope.industries = industries;
+              $ionicLoading.hide();
+            });
           });
         });
       });
