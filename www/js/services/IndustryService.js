@@ -5,12 +5,22 @@ angular.module('wj.services').factory('IndustryService', function($q, PouchServi
     all: function() {
       var deferred = $q.defer();
 
-      PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'industry', include_docs: true}, function(err, response) {
+      PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true}, function(err, response) {
         if (err) console.log('Cannot load industries', err);
 
-        deferred.resolve(response.rows.map(function(row) {
-          return row.doc;
-        }));
+        var industies = [];
+
+        for (var i=0; i<response.rows.length; ++i) {
+          for (var j=0; j<response.rows[i].doc.industries.length; ++j) {
+            var industry = response.rows[i].doc.industries[j];
+
+            if ((typeof(industry) == 'string') && (industry.length > 0) && (industies.indexOf(industry) == -1)) {
+              industies.push(industry);
+            }
+          }
+        }
+
+        deferred.resolve(industies);
       });
 
       return deferred.promise;
