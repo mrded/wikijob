@@ -16,18 +16,18 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       return deferred.promise;
     },
 
-    load: function(industryId) {
+    load: function(industry) {
       var deferred = $q.defer();
 
       var map = function(doc) {
         if (doc.type === 'job') {
-          for (var i = 0; i < doc.industry_ids.length; ++i) {
-            emit(doc.industry_ids[i]);
+          for (var i = 0; i < doc.industries.length; ++i) {
+            emit(doc.industries[i]);
           }
         }
       };
 
-      PouchService.db().query(map, {key: industryId, include_docs: true, attachments: true}, function(err, response) {
+      PouchService.db().query(map, {key: industry, include_docs: true, attachments: true}, function(err, response) {
         if (err) console.log('Cannot get jobs by industry', err);
 
         deferred.resolve(response.rows.map(function(row) {
