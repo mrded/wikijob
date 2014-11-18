@@ -5,7 +5,17 @@ angular.module('wj.controllers').controller('MenuCtrl', function($rootScope, $sc
     $ionicLoading.show({template: 'Loading'});
 
     JobService.load(industryId).then(function(jobs) {
-      $rootScope.jobs = jobs;
+      $rootScope.jobs.length = 0;
+
+      //@TODO: refactor loading of logo.
+      angular.forEach(jobs, function(job) {
+        JobService.getLogo(job.id).then(function(logo) {
+          job.logo = logo;
+
+          $rootScope.jobs.push(job);
+        });
+      });
+
       $ionicLoading.hide();
     });
   };
@@ -18,6 +28,8 @@ angular.module('wj.controllers').controller('MenuCtrl', function($rootScope, $sc
   });
 
   JobService.all().then(function(jobs) {
+
+    //@TODO: refactor loading of logo.
     angular.forEach(jobs, function(job) {
       JobService.getLogo(job.id).then(function(logo) {
         job.logo = logo;
