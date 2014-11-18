@@ -22,3 +22,12 @@ function convertImgToBase64(url, callback, outputFormat) {
 
   img.src = url;
 }
+
+function convertBlobToBase64(blob, callback) {
+  var reader = new window.FileReader();
+  reader.readAsDataURL(blob);
+
+  reader.onloadend = function() {
+    callback.call(this, reader.result);
+  }
+}

@@ -18,7 +18,14 @@ angular.module('wj.controllers').controller('MenuCtrl', function($rootScope, $sc
   });
 
   JobService.all().then(function(jobs) {
-    $rootScope.jobs = jobs;
+    angular.forEach(jobs, function(job) {
+      JobService.getLogo(job.id).then(function(logo) {
+        job.logo = logo;
+
+        $rootScope.jobs.push(job);
+      });
+    });
+
     $ionicLoading.hide();
   });
 });

@@ -50,6 +50,20 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       return deferred.promise;
     },
 
+    getLogo: function(jobId) {
+      var deferred = $q.defer();
+
+      PouchService.db().getAttachment(jobId, 'logo', function(err, response) {
+        if (err) console.log('Cannot get the logo', response, err);
+
+        convertBlobToBase64(response, function(logo) {
+          deferred.resolve(logo);
+        });
+      });
+
+      return deferred.promise;
+    },
+
     save: function(jobs) {
       var deferred = $q.defer();
 
