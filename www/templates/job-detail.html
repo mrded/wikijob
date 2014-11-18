@@ -13,7 +13,7 @@
       </div>
 
       <div class="item item-body">
-        <p>{{job.description}}</p>
+        <div ng-bind-html="job.description"></div>
 
         <a href="{{job.url}}" class="button button-full button-positive" ng-if="job.url">
           Find out more
