@@ -4,7 +4,7 @@
   "devDependencies": {},
   "dependencies": {
     "ionic": "driftyco/ionic-bower#1.0.0-beta.13",
-    "pouchdb": "~3.0.6",
+    "pouchdb": "3.x",
     "steroids-js": "3.x"
   }
 }
