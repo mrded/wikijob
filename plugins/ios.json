@@ -13,7 +13,13 @@
                     "libz.dylib": [],
                     "Security.framework": [],
                     "CFNetwork.framework": [],
-                    "SystemConfiguration.framework": []
+                    "SystemConfiguration.framework": [],
+                    "CoreGraphics.framework": [
+                        {
+                            "xml": "false",
+                            "count": 1
+                        }
+                    ]
                 }
             },
             "config.xml": {
@@ -25,6 +31,10 @@
                         },
                         {
                             "xml": "<feature name=\"Console\"><param name=\"ios-package\" value=\"CDVLogger\" /></feature>",
+                            "count": 1
+                        },
+                        {
+                            "xml": "<feature name=\"InAppBrowser\"><param name=\"ios-package\" value=\"CDVInAppBrowser\" /></feature>",
                             "count": 1
                         }
                     ],
@@ -38,6 +48,9 @@
             "PACKAGE_NAME": "com.demenchuk.wikijob"
         },
         "org.apache.cordova.console": {
+            "PACKAGE_NAME": "com.demenchuk.wikijob"
+        },
+        "org.apache.cordova.inappbrowser": {
             "PACKAGE_NAME": "com.demenchuk.wikijob"
         }
     },
