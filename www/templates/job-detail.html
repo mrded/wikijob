@@ -21,9 +21,9 @@
       <div class="item item-body">
         <div ng-bind-html="job.description"></div>
 
-        <a href="{{job.url}}" class="button button-full button-positive" ng-if="job.url">
+        <button class="button button-full button-positive" ng-if="job.url" ng-click="open(job.url)">
           Find out more
-        </a>
+        </button>
       </div>
     </div>
   </ion-content>

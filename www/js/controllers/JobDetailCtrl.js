@@ -4,4 +4,9 @@ angular.module('wj.controllers').controller('JobDetailCtrl', function($scope, $s
   JobService.get($stateParams.jobId).then(function(job) {
     $scope.job = job;
   });
+
+  $scope.open = function(url) {
+    window.open(url, '_system', 'location=no');
+    return false;
+  };
 });
