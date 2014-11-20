@@ -1,7 +1,7 @@
 WikiJob
 =====================
 
-The mobile app for WikiJob website
+The mobile app designed for students and graduates looking for career opportunities.
 
 ## What is inside?
 * [Apache Cordova](http://cordova.apache.org)
