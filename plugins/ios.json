@@ -5,23 +5,6 @@
     },
     "config_munge": {
         "files": {
-            "framework": {
-                "parents": {
-                    "libsqlite3.dylib": [],
-                    "libstdc++.dylib": [],
-                    "libicucore.dylib": [],
-                    "libz.dylib": [],
-                    "Security.framework": [],
-                    "CFNetwork.framework": [],
-                    "SystemConfiguration.framework": [],
-                    "CoreGraphics.framework": [
-                        {
-                            "xml": "false",
-                            "count": 1
-                        }
-                    ]
-                }
-            },
             "config.xml": {
                 "parents": {
                     "/*": [
@@ -37,8 +20,17 @@
                             "xml": "<feature name=\"InAppBrowser\"><param name=\"ios-package\" value=\"CDVInAppBrowser\" /></feature>",
                             "count": 1
                         }
-                    ],
-                    "/widget": []
+                    ]
+                }
+            },
+            "framework": {
+                "parents": {
+                    "CoreGraphics.framework": [
+                        {
+                            "xml": "false",
+                            "count": 1
+                        }
+                    ]
                 }
             }
         }
