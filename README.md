@@ -7,6 +7,7 @@ The mobile app designed for students and graduates looking for career opportunit
 * [Apache Cordova](http://cordova.apache.org)
 * [AngularJS](https://angularjs.org)
 * [Ionic](http://ionicframework.com)
+* [Pouchdb](http://pouchdb.com)
 
 ## Install
 
