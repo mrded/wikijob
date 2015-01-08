@@ -16,16 +16,7 @@ angular.module('wj.controllers').controller('JobsCtrl', function(
 
         JobService.save(jobs).then(function() {
           JobService.all().then(function(jobs) {
-            $rootScope.jobs.length = 0;
-
-            //@TODO: refactor loading of logo.
-            angular.forEach(jobs, function(job) {
-              JobService.getLogo(job.id).then(function(logo) {
-                job.logo = logo;
-
-                $rootScope.jobs.push(job);
-              });
-            });
+            $rootScope.jobs = jobs;
 
             IndustryService.all().then(function(industries) {
               $rootScope.industries = industries;

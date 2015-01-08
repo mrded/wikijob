@@ -22,11 +22,7 @@ angular.module('wj', ['ionic', 'wj.controllers', 'wj.services'])
   });
 })
 
-.constant('ENV', 'dev')
-.constant('JOBS_URL', '/mocks/jobs.json')
-
-//.constant('ENV', 'live')
-//.constant('JOBS_URL', 'http://www.wikijob.co.uk/api/jobs')
+.constant('JOBS_URL', 'http://www.wikijob.co.uk/api/jobs')
 
 .config(function($stateProvider, $urlRouterProvider) {
 
