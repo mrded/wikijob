@@ -1,4 +1,4 @@
-WikiJob 1.0.1, 2015-01-08
+WikiJob 1.0.2, 2015-01-08
 ------------------------
 - Download jobs automatically after first run.
 - Keep menu open on tablets.
