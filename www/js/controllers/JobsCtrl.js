@@ -13,9 +13,14 @@ angular.module('wj.controllers').controller('JobsCtrl', function(
       IndustryService.all().then(function(industries) {
         $rootScope.industries = industries;
         $ionicLoading.hide();
+      }, function() {
+        $ionicLoading.hide();
       });
+
     }
     else $scope.reload();
+  }, function() {
+    $ionicLoading.hide();
   });
 
   $scope.reload = function() {
@@ -35,11 +40,24 @@ angular.module('wj.controllers').controller('JobsCtrl', function(
             IndustryService.all().then(function(industries) {
               $rootScope.industries = industries;
               $ionicLoading.hide();
+            }, function() {
+              $ionicLoading.hide();
             });
+
+          }, function() {
+            $ionicLoading.hide();
           });
+
+        }, function() {
+          $ionicLoading.hide();
         });
 
+      }, function() {
+        $ionicLoading.hide();
       });
+
+    }, function() {
+      $ionicLoading.hide();
     });
   };
 });
