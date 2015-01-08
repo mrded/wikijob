@@ -13,8 +13,8 @@
     </header>
     <ion-content class="has-header">
       <ion-list>
-        <ion-item nav-clear menu-close ng-click="all()">All</ion-item>
-        <ion-item ng-repeat="industry in industries" nav-clear menu-close ng-click="load(industry)" ng-bind-html="industry"></ion-item>
+        <ion-item nav-clear menu-close ng-click="all()" ng-class="active('All Jobs')">All Jobs</ion-item>
+        <ion-item ng-repeat="industry in industries" nav-clear menu-close ng-click="load(industry)" ng-class="active(industry)" ng-bind-html="industry"></ion-item>
       </ion-list>
     </ion-content>
   </ion-side-menu>
