@@ -1,16 +1,16 @@
 'use strict';
 
-angular.module('wj.services').factory('JobService', function($http, $q, PouchService, ENV) {
+angular.module('wj.services').factory('JobService', function($http, $q, PouchService) {
   return {
     all: function() {
       var deferred = $q.defer();
 
       PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true, attachments: true}, function(err, response) {
-        if (err) console.log('Cannot load jobs', err);
-
-        deferred.resolve(response.rows.map(function(row) {
-          return row.doc;
-        }));
+        if (!err) {
+          deferred.resolve(response.rows.map(function(row) {
+            return row.doc;
+          }));
+        } else deferred.reject(err.message);
       });
 
       return deferred.promise;
@@ -28,11 +28,11 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       };
 
       PouchService.db().query(map, {key: industry, include_docs: true, attachments: true}, function(err, response) {
-        if (err) console.log('Cannot get jobs by industry', err);
-
-        deferred.resolve(response.rows.map(function(row) {
-          return row.doc;
-        }));
+        if (!err) {
+          deferred.resolve(response.rows.map(function(row) {
+            return row.doc;
+          }));
+        } else deferred.reject(err.message);
       });
 
       return deferred.promise;
@@ -42,23 +42,8 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
       var deferred = $q.defer();
 
       PouchService.db().get(jobId, {attachments: true}, function(err, response) {
-        if (err) console.log('Cannot get the job', jobId, err);
-
-        deferred.resolve(response);
-      });
-
-      return deferred.promise;
-    },
-
-    getLogo: function(jobId) {
-      var deferred = $q.defer();
-
-      PouchService.db().getAttachment(jobId, 'logo', function(err, response) {
-        if (err) console.log('Cannot get the logo', response, err);
-
-        convertBlobToBase64(response, function(logo) {
-          deferred.resolve(logo);
-        });
+        if (!err) deferred.resolve(response)
+          else deferred.reject(err.message);
       });
 
       return deferred.promise;
@@ -73,23 +58,11 @@ angular.module('wj.services').factory('JobService', function($http, $q, PouchSer
 
         job.industries = job.industries.split(',');
 
-        // Add attachments.
-        var logo = (ENV === 'dev') ? '/mocks/300x150.gif' : job.logo;
-        convertImgToBase64(logo, function(base64Img) {
-          job['_attachments'] = {
-            "logo": {
-              "content_type": 'image/png',
-              "data": base64Img
-            }
-          };
-
-          PouchService.db().post(job, function(err) {
-            if (err) console.log('Cannot save the job', job, err);
-          });
+        PouchService.db().post(job, function(err, response) {
+          if (!err) deferred.resolve(response)
+            else deferred.reject(err.message);
         });
       });
-
-      deferred.resolve();
 
       return deferred.promise;
     }
