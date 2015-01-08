@@ -6,20 +6,20 @@ angular.module('wj.services').factory('IndustryService', function($q, PouchServi
       var deferred = $q.defer();
 
       PouchService.db().query(function(doc) { emit(doc.type); }, {key: 'job', include_docs: true}, function(err, response) {
-        if (err) console.log('Cannot load industries', err);
-
-        var industies = [];
-
-        for (var i=0; i<response.rows.length; ++i) {
-          for (var j=0; j<response.rows[i].doc.industries.length; ++j) {
-            var industry = response.rows[i].doc.industries[j];
-
-            if ((typeof(industry) == 'string') && (industry.length > 0) && (industies.indexOf(industry) == -1)) {
-              industies.push(industry);
+        if (!err) {
+          var industies = [];
+          
+          for (var i=0; i<response.rows.length; ++i) {
+            for (var j=0; j<response.rows[i].doc.industries.length; ++j) {
+              var industry = response.rows[i].doc.industries[j];
+          
+              if ((typeof(industry) == 'string') && (industry.length > 0) && (industies.indexOf(industry) == -1)) {
+                industies.push(industry);
+              }
             }
           }
-        }
-
+        } else deferred.reject(err.message);
+        
         deferred.resolve(industies);
       });
 
