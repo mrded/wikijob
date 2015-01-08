@@ -9,8 +9,9 @@
 
   <ion-content class="has-header">
     <ion-list>
-      <ion-item>
-        <button class="button button-full button-positive" ng-if="!jobs.length" ng-click="reload()">
+
+      <ion-item ng-if="!jobs.length">
+        <button class="button button-full button-positive" ng-click="reload()">
           Load jobs
         </button>
       </ion-item>
