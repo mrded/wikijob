@@ -1,6 +1,5 @@
 {
   "name": "wikijob",
-  "version": "1.0.0",
   "description": "The mobile client for WikiJob website",
   "dependencies": {
     "gulp": "^3.5.6",
